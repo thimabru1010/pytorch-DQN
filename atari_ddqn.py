@@ -131,11 +131,13 @@ if __name__ == '__main__':
     config.max_buff = 100000
     config.update_tar_interval = 1000
     config.batch_size = 32
-    config.print_interval = 5000
-    config.log_interval = 5000
+    # Deixar esses dois abaixo iguais
+    config.print_interval = 10000
+    config.log_interval = 10000
     config.checkpoint = True
     config.checkpoint_interval = 500000
-    config.win_reward = 18  # PongNoFrameskip-v4
+    #config.checkpoint_interval = 5000
+    config.win_reward = 15  # PongNoFrameskip-v4
     config.win_break = True
 
     # handle the atari env
