@@ -128,10 +128,12 @@ if __name__ == '__main__':
     config.epsilon = 1
     config.epsilon_min = 0.01
     config.eps_decay = 30000
+    # Number of steps. Each step is a frame
     config.frames = 2000000
     config.use_cuda = True
     config.learning_rate = 1e-4
-    config.max_buff = 100000
+    #config.max_buff = 100000
+    config.max_buff = 50000
     config.update_tar_interval = 1000
     config.batch_size = 32
     # Deixar esses dois abaixo iguais

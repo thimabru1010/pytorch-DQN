@@ -3,7 +3,7 @@ import os
 import random
 import torch
 from torch.optim import Adam
-from tester import Tester
+from tester_clipped import Tester
 from buffer import ReplayBuffer
 from common.wrappers import make_atari, wrap_deepmind, wrap_pytorch
 from config import Config
@@ -18,6 +18,7 @@ class CnnDDQNAgent:
         self.buffer = ReplayBuffer(self.config.max_buff)
 
         # Instance model 1, target network 1 and the optimizer
+        #print(self.config.state_shape)
         self.model1 = CnnDQN(self.config.state_shape, self.config.action_dim)
         self.target_model1 = CnnDQN(self.config.state_shape, self.config.action_dim)
 
@@ -75,26 +76,34 @@ class CnnDDQNAgent:
 
         # Calculates Q-value for Network 2
         q_values2 = self.model2(s0).cuda()
-        next_q_values2 = self.model2(s1).cuda()
+        #next_q_values2 = self.model2(s1).cuda()
         next_q_state_values2 = self.target_model2(s1).cuda()
 
         q_value2 = q_values2.gather(1, a.unsqueeze(1)).squeeze(1)
-        next_q_value2 = next_q_state_values2.gather(1, next_q_values2.max(1)[1].unsqueeze(1)).squeeze(1)
+        # Remeber: res2 = target_network2(sP, argmax(network1(s,a) ) )
+        next_q_value2 = next_q_state_values2.gather(1, next_q_values1.max(1)[1].unsqueeze(1)).squeeze(1)
 
-        print('='*60)
-        print('Targets:')
-        print(next_q_value1, next_q_value2)
-        next_q_values = torch.tensor([next_q_value1, next_q_value2], dtype=torch.float)
-        index = torch.argmin(next_q_values)
-        #next_q_value = torch.min(next_q_value1, next_q_value2)
+        # print('='*60)
+        # print('Targets:')
+        # print(next_q_value1.size())
+        # print(next_q_value2.size())
+        # next_q_values = torch.cat((next_q_value1.unsqueeze(1), next_q_value2.unsqueeze(1)), dim=-1)
+        # print(next_q_values.shape)
+        # index = torch.argmin(next_q_values, dim=-1)
+        # print(index.size())
+        # print(next_q_values[:, index].shape)
+        next_q_value = torch.min(next_q_value1, next_q_value2)
+        #print(next_q_value)
 
         # Calculate the target
-        expected_q_value = r + self.config.gamma * next_q_values[index] * (1 - done)
+        expected_q_value = r + self.config.gamma * next_q_value * (1 - done)
+        #expected_q_value = r + self.config.gamma * next_q_values[index] * (1 - done)
         # Notice that detach the expected_q_value
         expected_q_value = expected_q_value.detach()
         # Calculate the loss for network1
         loss1 = (q_value1 - expected_q_value).pow(2).mean()
         # Calculate the loss for network2
+        # Train respect to the value of network 2 (e.g. q_value2)
         loss2 = (q_value2 - expected_q_value).pow(2).mean()
 
         self.model_optim1.zero_grad()
@@ -111,6 +120,7 @@ class CnnDDQNAgent:
             # Update target network 2
             self.target_model2.load_state_dict(self.model2.state_dict())
 
+        index=0
         return loss1.item(), loss2.item(), index
 
     def cuda(self):
@@ -123,9 +133,9 @@ class CnnDDQNAgent:
     def load_weights(self, model_path):
         model = torch.load(model_path)
         if 'model' in model:
-            self.model.load_state_dict(model['model'])
+            self.model1.load_state_dict(model['model'])
         else:
-            self.model.load_state_dict(model)
+            self.model1.load_state_dict(model)
 
     def save_model(self, output, name=''):
         torch.save(self.model1.state_dict(), '%s/model_%s.pkl' % (output, name))
@@ -172,10 +182,13 @@ if __name__ == '__main__':
     config.epsilon = 1
     config.epsilon_min = 0.01
     config.eps_decay = 30000
+    # Number of steps. Each step is a frame
     config.frames = 2000000
+    config.start_training = 2000
     config.use_cuda = True
     config.learning_rate = 1e-4
-    config.max_buff = 100000
+    #config.max_buff = 100000
+    config.max_buff = 50000
     config.update_tar_interval = 1000
     config.batch_size = 32
     # Deixar esses dois abaixo iguais
@@ -205,7 +218,7 @@ if __name__ == '__main__':
             print('please add the model path:', '--model_path xxxx')
             exit(0)
         tester = Tester(agent, env, args.model_path)
-        tester.test()
+        tester.test(debug=True)
 
     elif args.retrain:
         if args.model_path is None:
