@@ -81,6 +81,7 @@ class CnnDDQNAgent:
 
         q_value2 = q_values2.gather(1, a.unsqueeze(1)).squeeze(1)
         # Remeber: res2 = target_network2(sP, argmax(network1(s,a) ) )
+        # The action comes from network 1
         next_q_value2 = next_q_state_values2.gather(1, next_q_values1.max(1)[1].unsqueeze(1)).squeeze(1)
 
         # print('='*60)

@@ -130,6 +130,7 @@ if __name__ == '__main__':
     config.eps_decay = 30000
     # Number of steps. Each step is a frame
     config.frames = 2000000
+    config.start_training = 2000
     config.use_cuda = True
     config.learning_rate = 1e-4
     #config.max_buff = 100000
