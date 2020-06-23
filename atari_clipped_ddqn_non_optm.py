@@ -9,7 +9,7 @@ from common.wrappers import make_atari, wrap_deepmind, wrap_pytorch
 from config import Config
 from core.util import get_class_attr_val
 from model import CnnDQN
-from trainer_clipped import Trainer
+from trainer_clipped_non_optm import Trainer
 
 class CnnDDQNAgent:
     def __init__(self, config: Config):
@@ -66,60 +66,68 @@ class CnnDDQNAgent:
             r = r.cuda()
             done = done.cuda()
 
-        # Calculates Q-value for Network 1
+        # Calculates Q-value using Network 1 for action ------------------
         q_values1 = self.model1(s0).cuda()
         next_q_values1 = self.model1(s1).cuda()
         next_q_state_values1 = self.target_model1(s1).cuda()
-
-        q_value1 = q_values1.gather(1, a.unsqueeze(1)).squeeze(1)
-        next_q_value1 = next_q_state_values1.gather(1, next_q_values1.max(1)[1].unsqueeze(1)).squeeze(1)
-
-        # Calculates Q-value for Network 2
-        q_values2 = self.model2(s0).cuda()
-        #next_q_values2 = self.model2(s1).cuda()
         next_q_state_values2 = self.target_model2(s1).cuda()
 
-        q_value2 = q_values2.gather(1, a.unsqueeze(1)).squeeze(1)
-        # Remeber: res2 = target_network2(sP, argmax(network1(s,a) ) )
-        # The action comes from network 1
-        next_q_value2 = next_q_state_values2.gather(1, next_q_values1.max(1)[1].unsqueeze(1)).squeeze(1)
+        q_value1 = q_values1.gather(1, a.unsqueeze(1)).squeeze(1)
 
-        # print('='*60)
-        # print('Targets:')
-        # print(next_q_value1.size())
-        # print(next_q_value2.size())
-        #print(next_q_values.shape)
-        ##print(index.size())
-        #print(next_q_values.min(0)[1])
-        #print(next_q_values[index, :])
-        # print(values)
-        # print(index)
-        # next_q_value = torch.min(next_q_value1, next_q_value2)
-        # print(next_q_value)
-        #print(next_q_value)
+        # res1 = target_network1(sP, argmax(network1(s,a) ) )
+        next_q_value1_net1 = next_q_state_values1.gather(1, next_q_values1.max(1)[1].unsqueeze(1)).squeeze(1)
+        # res2 = target_network2(sP, argmax(network1(s,a) ) )
+        next_q_value2_net1 = next_q_state_values2.gather(1, next_q_values1.max(1)[1].unsqueeze(1)).squeeze(1)
 
-        next_q_values = torch.cat((next_q_value1.unsqueeze(1), next_q_value2.unsqueeze(1)), dim=-1)
-        
-        next_q_value, index = next_q_values.min(1)
+        # Calculate the target 1
+        next_q_values_net1 = torch.cat((next_q_value1_net1.unsqueeze(1), next_q_value2_net1.unsqueeze(1)), dim=-1)
 
-        # Calculate the target
-        expected_q_value = r + self.config.gamma * next_q_value * (1 - done)
-        #expected_q_value = r + self.config.gamma * next_q_values[index] * (1 - done)
+        next_q_value_net1, index_net1 = next_q_values_net1.min(1)
+        expected_q_value_net1 = r + self.config.gamma * next_q_value_net1 * (1 - done)
+
         # Notice that detach the expected_q_value
-        expected_q_value = expected_q_value.detach()
+        expected_q_value_net1 = expected_q_value_net1.detach()
         # Calculate the loss for network1
-        loss1 = (q_value1 - expected_q_value).pow(2).mean()
-        # Calculate the loss for network2
-        # Train respect to the value of network 2 (e.g. q_value2)
-        loss2 = (q_value2 - expected_q_value).pow(2).mean()
+        loss1 = (q_value1 - expected_q_value_net1).pow(2).mean()
 
         self.model_optim1.zero_grad()
         loss1.backward()
         self.model_optim1.step()
 
+        # Calculates Q-value using Network 1 for action ------------------
+
+        # Calculates Q-value using Network 2 for action ------------------
+
+        # Calculates Q-value for Network 2
+        q_values2 = self.model2(s0).cuda()
+        next_q_values2 = self.model2(s1).cuda()
+        # next_q_state_values1 andnext_q_state_values2 calculated above
+
+        q_value2 = q_values2.gather(1, a.unsqueeze(1)).squeeze(1)
+
+        # res1 = target_network1(sP, argmax(network2(s,a) ) )
+        next_q_value1_net2 = next_q_state_values1.gather(1, next_q_values2.max(1)[1].unsqueeze(1)).squeeze(1)
+
+        # res2 = target_network2(sP, argmax(network2(s,a) ) )
+        next_q_value2_net2 = next_q_state_values2.gather(1, next_q_values2.max(1)[1].unsqueeze(1)).squeeze(1)
+
+        next_q_values_net2 = torch.cat((next_q_value1_net2.unsqueeze(1), next_q_value2_net2.unsqueeze(1)), dim=-1)
+
+        next_q_value_net2, index_net2 = next_q_values_net2.min(1)
+
+        # Calculate the target
+        expected_q_value_net2 = r + self.config.gamma * next_q_value_net2 * (1 - done)
+
+        # Notice that detach the expected_q_value
+        expected_q_value_net2 = expected_q_value_net2.detach()
+        # Calculate the loss for network1
+        loss2 = (q_value2 - expected_q_value_net2).pow(2).mean()
+
         self.model_optim2.zero_grad()
         loss2.backward()
         self.model_optim2.step()
+
+        # Calculates Q-value using Network 2 for action ------------------
 
         if fr % self.config.update_tar_interval == 0:
             # Update target network 1
@@ -127,7 +135,9 @@ class CnnDDQNAgent:
             # Update target network 2
             self.target_model2.load_state_dict(self.model2.state_dict())
 
-        index = index.detach().cpu().numpy()
+        index_net1 = index_net1.detach().cpu().numpy()
+        index_net2 = index_net2.detach().cpu().numpy()
+        index = {1: index_net1, 2:index_net2}
         # print(index)
         return loss1.item(), loss2.item(), index
 
