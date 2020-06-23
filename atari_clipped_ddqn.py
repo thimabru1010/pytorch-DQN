@@ -88,13 +88,19 @@ class CnnDDQNAgent:
         # print('Targets:')
         # print(next_q_value1.size())
         # print(next_q_value2.size())
-        # next_q_values = torch.cat((next_q_value1.unsqueeze(1), next_q_value2.unsqueeze(1)), dim=-1)
-        # print(next_q_values.shape)
-        # index = torch.argmin(next_q_values, dim=-1)
-        # print(index.size())
-        # print(next_q_values[:, index].shape)
-        next_q_value = torch.min(next_q_value1, next_q_value2)
+        #print(next_q_values.shape)
+        ##print(index.size())
+        #print(next_q_values.min(0)[1])
+        #print(next_q_values[index, :])
+        # print(values)
+        # print(index)
+        # next_q_value = torch.min(next_q_value1, next_q_value2)
+        # print(next_q_value)
         #print(next_q_value)
+
+        next_q_values = torch.cat((next_q_value1.unsqueeze(1), next_q_value2.unsqueeze(1)), dim=-1)
+        
+        next_q_value, index = next_q_values.min(1)
 
         # Calculate the target
         expected_q_value = r + self.config.gamma * next_q_value * (1 - done)
@@ -121,7 +127,8 @@ class CnnDDQNAgent:
             # Update target network 2
             self.target_model2.load_state_dict(self.model2.state_dict())
 
-        index=0
+        index = index.detach().cpu().numpy()
+        # print(index)
         return loss1.item(), loss2.item(), index
 
     def cuda(self):

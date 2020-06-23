@@ -60,9 +60,20 @@ class Trainer:
                     # Talvez funcione
                     self.board_logger.scalar_summary('Loss2 per frame', fr, loss2)
 
+                    unique, counts = np.unique(index, return_counts=True)
+                    counts_dict = dict(zip(unique, counts))
+                    if 0 not in counts_dict.keys():
+                        counts_dict[0] = 0
+                    if 1 not in counts_dict.keys():
+                        counts_dict[1] = 0
+                    q1_counts = counts_dict[0]
+                    q2_counts = counts_dict[1]
+                    self.board_logger.scalar_summary('Frequency Q1', fr, q1_counts)
+                    self.board_logger.scalar_summary('Frequency Q2', fr, q2_counts)
+
 
                 if fr % self.config.print_interval == 0:
-                    print("frames: %5d, reward: %5f, loss1: %4f, loss2: %4f  episode: %4d Last Net: Q%d" % (fr, np.mean(all_rewards[-10:]), loss1, loss2, ep_num, index))
+                    print("frames: %5d, reward: %5f, loss1: %4f, loss2: %4f  episode: %4d  \t Q1/Q2: %d/%d" % (fr, np.mean(all_rewards[-10:]), loss1, loss2, ep_num, q1_counts, q2_counts))
 
                 if fr % self.config.log_interval == 0:
                     self.board_logger.scalar_summary('Reward per episode', ep_num, all_rewards[-1])
