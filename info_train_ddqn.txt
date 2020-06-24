@@ -1,0 +1,17 @@
+---- Training 0
+Ran 305 episodes best 100-episodes average reward is 15.030000. Solved after 205 trials ✔ 
+
+---- Training 1
+Ran 283 episodes best 100-episodes average reward is 15.120000. Solved after 183 trials ✔
+
+---- Training 2
+Ran 288 episodes best 100-episodes average reward is 15.010000. Solved after 188 trials ✔
+
+---- Training 3
+Ran 276 episodes best 100-episodes average reward is 15.020000. Solved after 176 trials ✔
+
+---- Training 4
+Ran 267 episodes best 100-episodes average reward is 15.070000. Solved after 167 trials ✔
+
+---- Training 5
+Ran 285 episodes best 100-episodes average reward is 15.030000. Solved after 185 trials ✔
