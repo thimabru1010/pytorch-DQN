@@ -1,3 +1,4 @@
+====================================	Normal DDQN	====================================
 ---- Training 0
 Ran 305 episodes best 100-episodes average reward is 15.030000. Solved after 205 trials ✔ 
 
@@ -15,3 +16,20 @@ Ran 267 episodes best 100-episodes average reward is 15.070000. Solved after 167
 
 ---- Training 5
 Ran 285 episodes best 100-episodes average reward is 15.030000. Solved after 185 trials ✔
+
+
+====================================	Clipped DDQN optm	====================================
+---- Training 1
+Ran 307 episodes best 100-episodes average reward is 15.090000. Solved after 207 trials ✔
+
+---- Training 2
+Deu ruim
+
+---- Training 3
+Ran 236 episodes best 100-episodes average reward is 15.250000. Solved after 136 trials ✔
+
+---- Training 4
+Ran 241 episodes best 100-episodes average reward is 15.060000. Solved after 141 trials ✔
+
+---- Training 5
+Ran 308 episodes best 100-episodes average reward is 15.040000. Solved after 208 trials ✔
